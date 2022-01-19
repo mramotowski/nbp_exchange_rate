@@ -19,16 +19,16 @@ class ExchangeRate(Resource):
 
         request = requests.get(nbpApiAddress)
         if request.status_code > 299:
-            return {'message': '400 Bad Request', 'error': 'Incorrect currency.'} , 400
+            return {'message': '400 Bad Request', 'error': 'Incorrect currency.'}, 400
 
         try:
             dateValue = date.fromisoformat(args.date)
         except ValueError:
-            return {'message': '400 bad request', 'error': 'Incorrect date string format. It should be YYYY-MM-DD.'} , 400
+            return {'message': '400 bad request', 'error': 'Incorrect date string format. It should be YYYY-MM-DD.'}, 400
 
         dateValue -= timedelta(days=1)
         if dateValue > datetime.now().date() or date.fromisoformat('2002-01-02') > dateValue:
-            return {'message': '400 bad request', 'error': 'Incorrect date. Correct date is between 2002-01-03 and present.'} , 400
+            return {'message': '400 bad request', 'error': 'Incorrect date. Correct date is between 2002-01-03 and present.'}, 400
 
         for dayBefore in range(7):
             nbpApiAddress += f'/{dateValue}'
@@ -39,10 +39,10 @@ class ExchangeRate(Resource):
             dateValue -= timedelta(days=1)
 
         if request.status_code != 200:
-            return {'message': '404 Not Found', 'error': 'The server can not find the requested resource.'} , 404
+            return {'message': '404 Not Found', 'error': 'The server can not find the requested resource.'}, 404
 
         message = json.loads(request.text)
-        return {'message': f'{message}'} , 200
+        return {'message': f'{message}'}, 200
 
 api.add_resource(ExchangeRate, '/')
 
