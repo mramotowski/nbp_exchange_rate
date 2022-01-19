@@ -7,3 +7,24 @@ are located in table A.
 
 This project enables to get exchange rate of chosen currency from table A
 provided by NBP for first business day preceding the day user provides.
+
+== Usage
+NBP exchange rate can be run as standalone app:
+
+----
+$ pip3 install -r requirements.txt
+$ python3 nbp_exchange_rate.py
+----
+
+or run in Docker:
+
+----
+$ docker build -t nbp_exchange_rate .
+$ docker run --rm -p 5000:5000 nbp_exchange_rate
+----
+
+When app is running it is possible to get interesting data using e.g. curl:
+
+----
+$ curl -i http://your.ip.addr.here:5000/\?currency\=usd\&date\=2022-01-11
+----
