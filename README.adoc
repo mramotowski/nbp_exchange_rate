@@ -26,5 +26,5 @@ $ docker run --rm -p 5000:5000 nbp_exchange_rate
 When app is running it is possible to get interesting data using e.g. curl:
 
 ----
-$ curl -i http://your.ip.addr.here:5000/\?currency\=usd\&date\=2022-01-11
+$ curl -i http://<your.ip.addr.here>:5000/prevday/exchangerate/<currency>/<date>
 ----
