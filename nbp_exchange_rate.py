@@ -3,6 +3,8 @@ from flask import Flask
 from flask_restful import Resource, Api
 from flask_restful import reqparse
 from datetime import date, datetime, timedelta
+from waitress import serve
+from paste.translogger import TransLogger
 import json
 import sys
 
@@ -76,5 +78,5 @@ if __name__ == '__main__':
     if not app:
         print('Couldn\'t create currencies code list for table A.')
         sys.exit(1)
-    app.run(host='0.0.0.0')
+    serve(TransLogger(app, setup_console_handler=False), host='0.0.0.0', port='5000')
     sys.exit(0)
