@@ -5,8 +5,8 @@ exchange rate of foreign currencies announced by the National Bank of Poland on
 the last business day preceding the day of obtaining the income. Those values
 are located in table A.
 
-This project enables to get exchange rate of chosen currency from table A
-provided by NBP for first business day preceding the day user provides.
+This project enables obtaining the exchange rate of chosen currency from table A
+for first business day preceding the date user provides.
 
 == Usage
 NBP exchange rate can be run as standalone app:
@@ -23,7 +23,7 @@ $ docker build -t nbp_exchange_rate .
 $ docker run --rm -p 5000:5000 nbp_exchange_rate
 ----
 
-When app is running it is possible to get interesting data using e.g. curl:
+When app is running it is possible to get desirable data using e.g. curl:
 
 ----
 $ curl -i http://<your.ip.addr.here>:5000/prevday/exchangerate/<currency>/<date>
