@@ -4,6 +4,7 @@ from flask_restful import Resource, Api
 from flask_restful import reqparse
 from datetime import date, datetime, timedelta
 import json
+import sys
 
 class ExchangeRate(Resource):
     def __init__(self, currencies_codes):
@@ -33,13 +34,25 @@ class ExchangeRate(Resource):
         if request.status_code != 200:
             return {'message': '404 Not Found', 'error': 'The server can not find the requested resource.'}, 404
 
-        message = json.loads(request.text)
+        try:
+            message = json.loads(request.text)
+        except json.decoder.JSONDecodeError:
+            return {'message': '500 Internal Server Error', 'error': 'Failed to load data.'}, 500
+
         return {'message': f'{message}'}, 200
 
 def get_currencies_codes():
     table_a_addr = f'https://api.nbp.pl/api/exchangerates/tables/a'
     request = requests.get(table_a_addr)
-    table_a = json.loads(request.text)
+
+    if request.status_code != 200:
+        return
+
+    try:
+        table_a = json.loads(request.text)
+    except json.decoder.JSONDecodeError:
+        return
+
     currencies = table_a[0]['rates']
     currencies_codes = set()
 
@@ -50,6 +63,8 @@ def get_currencies_codes():
 
 def create_app():
     currencies_codes = get_currencies_codes()
+    if not currencies_codes:
+        return
     app = Flask(__name__)
     api = Api(app)
     api.add_resource(ExchangeRate, '/prevday/exchangerate/<string:currency>/<string:date_string>',
@@ -58,4 +73,8 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
+    if not app:
+        print('Couldn\'t create currencies code list for table A.')
+        sys.exit(1)
     app.run(host='0.0.0.0')
+    sys.exit(0)
