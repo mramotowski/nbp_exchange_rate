@@ -5,18 +5,6 @@ from flask_restful import reqparse
 from datetime import date, datetime, timedelta
 import json
 
-def get_currencies_codes():
-    table_a_addr = f'https://api.nbp.pl/api/exchangerates/tables/a'
-    request = requests.get(table_a_addr)
-    table_a = json.loads(request.text)
-    currencies = table_a[0]['rates']
-    currencies_codes = set()
-
-    for currency in currencies:
-        currencies_codes.add(currency['code'])
-
-    return tuple(currencies_codes)
-
 class ExchangeRate(Resource):
     def __init__(self, currencies_codes):
         self.currencies_codes = currencies_codes
@@ -28,10 +16,10 @@ class ExchangeRate(Resource):
         try:
             dateValue = date.fromisoformat(date_string)
         except ValueError:
-            return {'message': '400 bad request', 'error': 'Incorrect date string format. It should be YYYY-MM-DD.'}, 400
+            return {'message': '400 Bad Request', 'error': 'Incorrect date string format. It should be YYYY-MM-DD.'}, 400
 
         if dateValue > datetime.now().date() or date.fromisoformat('2002-01-02') > dateValue:
-            return {'message': '400 bad request', 'error': 'Incorrect date. Correct date is between 2002-01-03 and present.'}, 400
+            return {'message': '400 Bad Request', 'error': 'Incorrect date. Correct date is between 2002-01-03 and present.'}, 400
 
         nbpApiAddress = f'https://api.nbp.pl/api/exchangerates/rates/a/{currency}'
         for dayBefore in range(7):
@@ -48,11 +36,26 @@ class ExchangeRate(Resource):
         message = json.loads(request.text)
         return {'message': f'{message}'}, 200
 
+def get_currencies_codes():
+    table_a_addr = f'https://api.nbp.pl/api/exchangerates/tables/a'
+    request = requests.get(table_a_addr)
+    table_a = json.loads(request.text)
+    currencies = table_a[0]['rates']
+    currencies_codes = set()
 
-if __name__ == '__main__':
+    for currency in currencies:
+        currencies_codes.add(currency['code'])
+
+    return tuple(currencies_codes)
+
+def create_app():
     currencies_codes = get_currencies_codes()
     app = Flask(__name__)
     api = Api(app)
     api.add_resource(ExchangeRate, '/prevday/exchangerate/<string:currency>/<string:date_string>',
                      resource_class_kwargs={'currencies_codes': currencies_codes})
+    return app
+
+if __name__ == '__main__':
+    app = create_app()
     app.run(host='0.0.0.0')
