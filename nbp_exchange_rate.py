@@ -41,6 +41,11 @@ class ExchangeRate(Resource):
         except json.decoder.JSONDecodeError:
             return {'message': '500 Internal Server Error', 'error': 'Failed to load data.'}, 500
 
+        try:
+            message = f'Exchange rate of {currency.upper()} to PLN for first business day preceding {date_string} is from {message["rates"][0]["effectiveDate"]} and is {message["rates"][0]["mid"]}'
+        except KeyError:
+            return {'message': '500 Internal Server Error', 'error': 'Failed to format data.'}, 500
+
         return {'message': f'{message}'}, 200
 
 def get_currencies_codes():
