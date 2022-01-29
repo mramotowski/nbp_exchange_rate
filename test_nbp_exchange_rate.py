@@ -47,17 +47,23 @@ class TestExchangeRate(unittest.TestCase):
         currency = 'USD'
         date_string = '2022-01-13'
         expected_response = {
-            'message': f'Exchange rate of USD to PLN for first business day' \
-            f' preceding 2022-01-13 is from 2022-01-12 and is 3.9879'}
+            'message': 'Found exchange rates',
+            'currency': 'USD',
+            'searchedDate:': '2022-01-13',
+            'effectiveDate': '2022-01-12',
+            'exchangeRate': '3.9879'}
         status_code = 200
         template_test(self, currency, date_string, status_code, expected_response)
 
     def test_day_after_free_day(self):
         currency = 'USD'
-        date_string = '2022-01-11'
+        date_string = '2022-01-10'
         expected_response = {
-            'message': f'Exchange rate of USD to PLN for first business day' \
-            f' preceding 2022-01-11 is from 2022-01-10 and is 4.0064'}
+            'message': 'Found exchange rates',
+            'currency': 'USD',
+            'searchedDate:': '2022-01-10',
+            'effectiveDate': '2022-01-07',
+            'exchangeRate': '4.0279'}
         status_code = 200
         template_test(self, currency, date_string, status_code, expected_response)
 
