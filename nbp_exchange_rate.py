@@ -49,15 +49,18 @@ class ExchangeRate(Resource):
             return {'message': '500 Internal Server Error', 'error': 'Failed to load data.'}, 500
 
         try:
-            msg = f'Exchange rate of {currency.upper()} to PLN for first business day' \
-                  f' preceding {date_string} is from {msg["rates"][0]["effectiveDate"]}' \
-                  f' and is {msg["rates"][0]["mid"]}'
+            msg = {
+                'message': 'Found exchange rates',
+                'currency': f'{currency.upper()}',
+                'searchedDate:': f'{date_string}',
+                'effectiveDate': f'{msg["rates"][0]["effectiveDate"]}',
+                'exchangeRate': f'{msg["rates"][0]["mid"]}'}
         except KeyError:
             return {
                 'message': '500 Internal Server Error',
                 'error': 'Failed to format data.'}, 500
 
-        return {'message': f'{msg}'}, 200
+        return msg, 200
 
 def get_currencies_codes():
     table_a_addr = f'https://api.nbp.pl/api/exchangerates/tables/a'
