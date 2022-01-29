@@ -50,8 +50,8 @@ class ExchangeRate(Resource):
 
         try:
             msg = f'Exchange rate of {currency.upper()} to PLN for first business day' \
-                      f' preceding {date_string} is from {msg["rates"][0]["effectiveDate"]}' \
-                      f' and is {msg["rates"][0]["mid"]}'
+                  f' preceding {date_string} is from {msg["rates"][0]["effectiveDate"]}' \
+                  f' and is {msg["rates"][0]["mid"]}'
         except KeyError:
             return {
                 'message': '500 Internal Server Error',
