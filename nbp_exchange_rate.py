@@ -10,43 +10,65 @@ from waitress import serve
 class ExchangeRate(Resource):
     def __init__(self, currencies_codes):
         self.currencies_codes = currencies_codes
+        self.date_value = None
+        self.err = None
 
-    def get(self, currency, date_string):
+    def __validate_input(self, currency, date_string):
         if currency.upper() not in self.currencies_codes:
-            return {
+            self.err = {
                 'message': '400 Bad Request',
                 'error': 'Incorrect currency.'}, 400
+            return None
 
         try:
-            date_value = date.fromisoformat(date_string)
+            self.date_value = date.fromisoformat(date_string)
         except ValueError:
-            return {
+            self.err = {
                 'message': '400 Bad Request',
                 'error': 'Incorrect date string format. It should be YYYY-MM-DD.'}, 400
+            return None
 
-        if date_value > datetime.now().date() or date.fromisoformat('2002-01-02') > date_value:
-            return {
+        if self.date_value > datetime.now().date() or \
+           date.fromisoformat('2002-01-02') > self.date_value:
+            self.err = {
                 'message': '400 Bad Request',
                 'error': 'Incorrect date. Correct date is between 2002-01-03 and present.'}, 400
+            return None
 
+        return None
+
+    def __get_searched_data(self, currency, date_string):
         nbp_api_addr = f'https://api.nbp.pl/api/exchangerates/rates/a/{currency}'
         for _ in range(7):
-            date_value -= timedelta(days=1)
-            nbp_api_addr += f'/{date_value}'
-            req = requests.get(nbp_api_addr)
+            self.date_value -= timedelta(days=1)
+            nbp_api_addr += f'/{self.date_value}'
+
+            try:
+                req = requests.get(nbp_api_addr)
+            except requests.exceptions.RequestException:
+                self.err = {
+                    'message': '502 Bad Gateway',
+                    'error': 'The server got an invalid response while working as ' \
+                        'a gateway to get the response needed to handle the request.'}, 500
+                return None
+
             if req.status_code == 200:
                 break
             nbp_api_addr = nbp_api_addr.rsplit('/', 1)[0]
 
         if req.status_code != 200:
-            return {
-                'message': '404 Not Found',
-                'error': 'The server can not find the requested resource.'}, 404
+            self.err = {
+                'message': '500 Internal Server Error',
+                'error': 'Failed to find data.'}, 500
+            return None
 
         try:
             msg = json.loads(req.text)
         except json.decoder.JSONDecodeError:
-            return {'message': '500 Internal Server Error', 'error': 'Failed to load data.'}, 500
+            self.err = {
+                'message': '500 Internal Server Error',
+                'error': 'Failed to load data.'}, 500
+            return None
 
         try:
             msg = {
@@ -56,9 +78,23 @@ class ExchangeRate(Resource):
                 'effectiveDate': f'{msg["rates"][0]["effectiveDate"]}',
                 'exchangeRate': f'{msg["rates"][0]["mid"]}'}
         except KeyError:
-            return {
+            self.err = {
                 'message': '500 Internal Server Error',
                 'error': 'Failed to format data.'}, 500
+            return None
+
+        return msg
+
+
+    def get(self, currency, date_string):
+        self.err = None
+        self.__validate_input(currency, date_string)
+        if self.err:
+            return self.err
+
+        msg = self.__get_searched_data(currency, date_string)
+        if self.err:
+            return self.err
 
         return msg, 200
 
