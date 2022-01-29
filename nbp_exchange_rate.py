@@ -1,12 +1,11 @@
+from datetime import date, datetime, timedelta
+import json
+import sys
 import requests
 from flask import Flask
 from flask_restful import Resource, Api
-from flask_restful import reqparse
-from datetime import date, datetime, timedelta
-from waitress import serve
 from paste.translogger import TransLogger
-import json
-import sys
+from waitress import serve
 
 class ExchangeRate(Resource):
     def __init__(self, currencies_codes):
@@ -14,46 +13,63 @@ class ExchangeRate(Resource):
 
     def get(self, currency, date_string):
         if currency.upper() not in self.currencies_codes:
-            return {'message': '400 Bad Request', 'error': 'Incorrect currency.'}, 400
+            return {
+                'message': '400 Bad Request',
+                'error': 'Incorrect currency.'}, 400
 
         try:
-            dateValue = date.fromisoformat(date_string)
+            date_value = date.fromisoformat(date_string)
         except ValueError:
-            return {'message': '400 Bad Request', 'error': 'Incorrect date string format. It should be YYYY-MM-DD.'}, 400
+            return {
+                'message': '400 Bad Request',
+                'error': 'Incorrect date string format. It should be YYYY-MM-DD.'}, 400
 
-        if dateValue > datetime.now().date() or date.fromisoformat('2002-01-02') > dateValue:
-            return {'message': '400 Bad Request', 'error': 'Incorrect date. Correct date is between 2002-01-03 and present.'}, 400
+        if date_value > datetime.now().date() or date.fromisoformat('2002-01-02') > date_value:
+            return {
+                'message': '400 Bad Request',
+                'error': 'Incorrect date. Correct date is between 2002-01-03 and present.'}, 400
 
-        nbpApiAddress = f'https://api.nbp.pl/api/exchangerates/rates/a/{currency}'
-        for dayBefore in range(7):
-            dateValue -= timedelta(days=1)
-            nbpApiAddress += f'/{dateValue}'
-            request = requests.get(nbpApiAddress)
-            if request.status_code == 200:
+        nbp_api_addr = f'https://api.nbp.pl/api/exchangerates/rates/a/{currency}'
+        for _ in range(7):
+            date_value -= timedelta(days=1)
+            nbp_api_addr += f'/{date_value}'
+            req = requests.get(nbp_api_addr)
+            if req.status_code == 200:
                 break
-            nbpApiAddress = nbpApiAddress.rsplit('/', 1)[0]
+            nbp_api_addr = nbp_api_addr.rsplit('/', 1)[0]
 
-        if request.status_code != 200:
-            return {'message': '404 Not Found', 'error': 'The server can not find the requested resource.'}, 404
+        if req.status_code != 200:
+            return {
+                'message': '404 Not Found',
+                'error': 'The server can not find the requested resource.'}, 404
 
         try:
-            message = json.loads(request.text)
+            msg = json.loads(req.text)
         except json.decoder.JSONDecodeError:
             return {'message': '500 Internal Server Error', 'error': 'Failed to load data.'}, 500
 
-        return {'message': f'{message}'}, 200
+        try:
+            msg = f'Exchange rate of {currency.upper()} to PLN for first business day' \
+                  f' preceding {date_string} is from {msg["rates"][0]["effectiveDate"]}' \
+                  f' and is {msg["rates"][0]["mid"]}'
+        except KeyError:
+            return {
+                'message': '500 Internal Server Error',
+                'error': 'Failed to format data.'}, 500
+
+        return {'message': f'{msg}'}, 200
 
 def get_currencies_codes():
     table_a_addr = f'https://api.nbp.pl/api/exchangerates/tables/a'
-    request = requests.get(table_a_addr)
+    req = requests.get(table_a_addr)
 
-    if request.status_code != 200:
-        return
+    if req.status_code != 200:
+        return None
 
     try:
-        table_a = json.loads(request.text)
+        table_a = json.loads(req.text)
     except json.decoder.JSONDecodeError:
-        return
+        return None
 
     currencies = table_a[0]['rates']
     currencies_codes = set()
@@ -66,7 +82,7 @@ def get_currencies_codes():
 def create_app():
     currencies_codes = get_currencies_codes()
     if not currencies_codes:
-        return
+        return None
     app = Flask(__name__)
     api = Api(app)
     api.add_resource(ExchangeRate, '/prevday/exchangerate/<string:currency>/<string:date_string>',

@@ -46,14 +46,18 @@ class TestExchangeRate(unittest.TestCase):
     def test_day_after_wroking_day(self):
         currency = 'USD'
         date_string = '2022-01-13'
-        expected_response = {'message': '{\'table\': \'A\', \'currency\': \'dolar ameryka\u0144ski\', \'code\': \'USD\', \'rates\': [{\'no\': \'007/A/NBP/2022\', \'effectiveDate\': \'2022-01-12\', \'mid\': 3.9879}]}'}
+        expected_response = {
+            'message': f'Exchange rate of USD to PLN for first business day' \
+            f' preceding 2022-01-13 is from 2022-01-12 and is 3.9879'}
         status_code = 200
         template_test(self, currency, date_string, status_code, expected_response)
 
     def test_day_after_free_day(self):
         currency = 'USD'
         date_string = '2022-01-11'
-        expected_response = {"message": "{'table': 'A', 'currency': 'dolar ameryka\u0144ski', 'code': 'USD', 'rates': [{'no': '005/A/NBP/2022', 'effectiveDate': '2022-01-10', 'mid': 4.0064}]}"}
+        expected_response = {
+            'message': f'Exchange rate of USD to PLN for first business day' \
+            f' preceding 2022-01-11 is from 2022-01-10 and is 4.0064'}
         status_code = 200
         template_test(self, currency, date_string, status_code, expected_response)
 
