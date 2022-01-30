@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
 import json
 import sys
+import logging
 import requests
 from flask import Flask
 from flask_restful import Resource, Api
@@ -108,6 +109,7 @@ def get_currencies_codes():
     try:
         table_a = json.loads(req.text)
     except json.decoder.JSONDecodeError:
+        app_logger.error('Couldn\'t load json - table A.')
         return None
 
     currencies = table_a[0]['rates']
@@ -121,6 +123,7 @@ def get_currencies_codes():
 def create_app():
     currencies_codes = get_currencies_codes()
     if not currencies_codes:
+        app_logger.error('Couldn\'t create currencies code list for table A.')
         return None
     app = Flask(__name__)
     api = Api(app)
@@ -129,9 +132,31 @@ def create_app():
     return app
 
 if __name__ == '__main__':
+    wsgi_logger = logging.getLogger('wsgi')
+    wsgi_formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+
+    wsgi_file_handler = logging.FileHandler('nbp_exchange_rate.log')
+    wsgi_file_handler.setFormatter(wsgi_formatter)
+
+    wsgi_logger.addHandler(wsgi_file_handler)
+
+    app_logger = logging.getLogger('app')
+    app_formatter = logging.Formatter('%(levelname)s:%(name)s:%(asctime)s:%(message)s')
+
+    app_file_handler = logging.FileHandler('nbp_exchange_rate.log')
+    app_file_handler.setFormatter(app_formatter)
+
+    app_stream_handler = logging.StreamHandler()
+    app_stream_handler.setFormatter(app_formatter)
+
+    app_logger.addHandler(app_file_handler)
+    app_logger.addHandler(app_stream_handler)
+
     app = create_app()
     if not app:
-        print('Couldn\'t create currencies code list for table A.')
         sys.exit(1)
-    serve(TransLogger(app, setup_console_handler=False), host='0.0.0.0', port='5000')
+
+    app_logged = TransLogger(app, setup_console_handler=False)
+    serve(app_logged, host='0.0.0.0', port='5000')
+
     sys.exit(0)
