@@ -4,39 +4,42 @@ import sys
 import logging
 import requests
 from flask import Flask
+from logging.handlers import RotatingFileHandler
 from flask_restful import Resource, Api
+from jsonformatter import basicConfig
 from paste.translogger import TransLogger
 from waitress import serve
 
 class ExchangeRate(Resource):
     def __init__(self, currencies_codes):
         self.currencies_codes = currencies_codes
-        self.date_value = None
-        self.err = None
 
     def __validate_input(self, currency, date_string):
         if currency.upper() not in self.currencies_codes:
-            self.err = {
+            err = {
                 'message': '400 Bad Request',
                 'error': 'Incorrect currency.'}, 400
-            return None
+            logging.error(err)
+            return {'date_value': None, 'error': err}
 
         try:
-            self.date_value = date.fromisoformat(date_string)
+            date_value = date.fromisoformat(date_string)
         except ValueError:
-            self.err = {
+            err = {
                 'message': '400 Bad Request',
                 'error': 'Incorrect date string format. It should be YYYY-MM-DD.'}, 400
-            return None
+            logging.error(err)
+            return {'date_value': None, 'error': err}
 
-        if self.date_value > datetime.now().date() or \
-           date.fromisoformat('2002-01-02') > self.date_value:
-            self.err = {
+        if date_value > datetime.now().date() or \
+           date.fromisoformat('2002-01-02') > date_value:
+            err = {
                 'message': '400 Bad Request',
                 'error': 'Incorrect date. Correct date is between 2002-01-03 and present.'}, 400
-            return None
+            logging.error(err)
+            return {'date_value': None, 'error': err}
 
-        return None
+        return {'date_value': date_value, 'error': None}
 
     def __get_searched_data(self, currency, date_string):
         nbp_api_addr = f'https://api.nbp.pl/api/exchangerates/rates/a/{currency}'
@@ -89,9 +92,9 @@ class ExchangeRate(Resource):
 
     def get(self, currency, date_string):
         self.err = None
-        self.__validate_input(currency, date_string)
-        if self.err:
-            return self.err
+        validated_input = self.__validate_input(currency, date_string)
+        if validated_input["error"]:
+            return err
 
         msg = self.__get_searched_data(currency, date_string)
         if self.err:
@@ -109,7 +112,7 @@ def get_currencies_codes():
     try:
         table_a = json.loads(req.text)
     except json.decoder.JSONDecodeError:
-        app_logger.error('Couldn\'t load json - table A.')
+        logging.error('Couldn\'t load json - table A.')
         return None
 
     currencies = table_a[0]['rates']
@@ -123,7 +126,7 @@ def get_currencies_codes():
 def create_app():
     currencies_codes = get_currencies_codes()
     if not currencies_codes:
-        app_logger.error('Couldn\'t create currencies code list for table A.')
+        logging.error('Couldn\'t create currencies code list for table A.')
         return None
     app = Flask(__name__)
     api = Api(app)
@@ -132,25 +135,14 @@ def create_app():
     return app
 
 if __name__ == '__main__':
-    wsgi_logger = logging.getLogger('wsgi')
-    wsgi_formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
-
-    wsgi_file_handler = logging.FileHandler('nbp_exchange_rate.log')
-    wsgi_file_handler.setFormatter(wsgi_formatter)
-
-    wsgi_logger.addHandler(wsgi_file_handler)
-
-    app_logger = logging.getLogger('app')
-    app_formatter = logging.Formatter('%(levelname)s:%(name)s:%(asctime)s:%(message)s')
-
-    app_file_handler = logging.FileHandler('nbp_exchange_rate.log')
-    app_file_handler.setFormatter(app_formatter)
-
-    app_stream_handler = logging.StreamHandler()
-    app_stream_handler.setFormatter(app_formatter)
-
-    app_logger.addHandler(app_file_handler)
-    app_logger.addHandler(app_stream_handler)
+    STRING_FORMAT = '''{
+        "asctime":         "asctime",
+        "levelname":       "levelname",
+        "name":            "name",
+        "message":         "message"
+    }'''
+    file_handler = RotatingFileHandler('nbp_exchange_rate.log', maxBytes=100*10^6, backupCount=1)
+    basicConfig(format=STRING_FORMAT, handlers=[file_handler, logging.StreamHandler()])
 
     app = create_app()
     if not app:
