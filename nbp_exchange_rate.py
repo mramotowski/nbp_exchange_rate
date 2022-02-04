@@ -104,6 +104,7 @@ class ExchangeRate(Resource):
         if msg['error']:
             return msg['error']
 
+        logging.info(msg['message'])
         return msg['message'], 200
 
 def get_currencies_codes():
@@ -150,6 +151,7 @@ if __name__ == '__main__':
     }'''
     file_handler = RotatingFileHandler('nbp_exchange_rate.log', maxBytes=100*10**6, backupCount=1)
     basicConfig(format=STRING_FORMAT, handlers=[file_handler, logging.StreamHandler()])
+    logging.getLogger().setLevel(logging.INFO)
 
     app = create_app()
     if not app:
