@@ -20,7 +20,7 @@ class ExchangeRate(Resource):
                 'message': '400 Bad Request',
                 'error': 'Incorrect currency.'}, 400
             logging.error(err)
-            return {'date_value': None, 'error': err}
+            return err
 
         try:
             date_value = date.fromisoformat(date_string)
@@ -29,7 +29,7 @@ class ExchangeRate(Resource):
                 'message': '400 Bad Request',
                 'error': 'Incorrect date string format. It should be YYYY-MM-DD.'}, 400
             logging.error(err)
-            return {'date_value': None, 'error': err}
+            return err
 
         if date_value > datetime.now().date() or \
            date.fromisoformat('2002-01-02') > date_value:
@@ -37,42 +37,46 @@ class ExchangeRate(Resource):
                 'message': '400 Bad Request',
                 'error': 'Incorrect date. Correct date is between 2002-01-03 and present.'}, 400
             logging.error(err)
-            return {'date_value': None, 'error': err}
+            return err
 
-        return {'date_value': date_value, 'error': None}
+        return None
 
     def __get_searched_data(self, currency, date_string):
         nbp_api_addr = f'https://api.nbp.pl/api/exchangerates/rates/a/{currency}'
+        date_value = date.fromisoformat(date_string)
         for _ in range(7):
-            self.date_value -= timedelta(days=1)
-            nbp_api_addr += f'/{self.date_value}'
+            date_value -= timedelta(days=1)
+            nbp_api_addr += f'/{date_value}'
 
             try:
                 req = requests.get(nbp_api_addr)
             except requests.exceptions.RequestException:
-                self.err = {
+                err = {
                     'message': '502 Bad Gateway',
                     'error': 'The server got an invalid response while working as ' \
                         'a gateway to get the response needed to handle the request.'}, 500
-                return None
+                logging.error(err)
+                return {'message': None, 'error': err}
 
             if req.status_code == 200:
                 break
             nbp_api_addr = nbp_api_addr.rsplit('/', 1)[0]
 
         if req.status_code != 200:
-            self.err = {
+            err = {
                 'message': '500 Internal Server Error',
                 'error': 'Failed to find data.'}, 500
-            return None
+            logging.error(err)
+            return {'message': None, 'error': err}
 
         try:
             msg = json.loads(req.text)
         except json.decoder.JSONDecodeError:
-            self.err = {
+            err = {
                 'message': '500 Internal Server Error',
                 'error': 'Failed to load data.'}, 500
-            return None
+            logging.error(err)
+            return {'message': None, 'error': err}
 
         try:
             msg = {
@@ -82,29 +86,32 @@ class ExchangeRate(Resource):
                 'effectiveDate': f'{msg["rates"][0]["effectiveDate"]}',
                 'exchangeRate': f'{msg["rates"][0]["mid"]}'}
         except KeyError:
-            self.err = {
+            err = {
                 'message': '500 Internal Server Error',
                 'error': 'Failed to format data.'}, 500
-            return None
+            logging.error(err)
+            return {'message': None, 'error': err}
 
-        return msg
+        return {'message': msg, 'error': None}
 
 
     def get(self, currency, date_string):
-        self.err = None
-        validated_input = self.__validate_input(currency, date_string)
-        if validated_input["error"]:
+        err = self.__validate_input(currency, date_string)
+        if err:
             return err
 
         msg = self.__get_searched_data(currency, date_string)
-        if self.err:
-            return self.err
+        if msg['error']:
+            return msg['error']
 
-        return msg, 200
+        return msg['message'], 200
 
 def get_currencies_codes():
     table_a_addr = f'https://api.nbp.pl/api/exchangerates/tables/a'
-    req = requests.get(table_a_addr)
+    try:
+        req = requests.get(table_a_addr)
+    except requests.exceptions.RequestException:
+        return None
 
     if req.status_code != 200:
         return None
@@ -141,7 +148,7 @@ if __name__ == '__main__':
         "name":            "name",
         "message":         "message"
     }'''
-    file_handler = RotatingFileHandler('nbp_exchange_rate.log', maxBytes=100*10^6, backupCount=1)
+    file_handler = RotatingFileHandler('nbp_exchange_rate.log', maxBytes=100*10**6, backupCount=1)
     basicConfig(format=STRING_FORMAT, handlers=[file_handler, logging.StreamHandler()])
 
     app = create_app()
