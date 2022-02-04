@@ -1,4 +1,5 @@
 import unittest
+import logging
 from nbp_exchange_rate import create_app
 
 def template_test(self, currency, date_string, status_code, expected_response):
@@ -68,4 +69,5 @@ class TestExchangeRate(unittest.TestCase):
         template_test(self, currency, date_string, status_code, expected_response)
 
 if __name__ == "__main__":
+    logging.disable(logging.CRITICAL)
     unittest.main()
