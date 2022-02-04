@@ -1,4 +1,4 @@
-= NBP exchange rate
+= PLN exchange rate
 
 Revenues in foreign currencies are converted into PLN according to the average
 exchange rate of foreign currencies announced by the National Bank of Poland on
