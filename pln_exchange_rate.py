@@ -52,7 +52,7 @@ if __name__ == '__main__':
         "name":            "name",
         "message":         "message"
     }'''
-    file_handler = RotatingFileHandler('nbp_exchange_rate.log', maxBytes=100*10**6, backupCount=1)
+    file_handler = RotatingFileHandler('pln_exchange_rate.log', maxBytes=100*10**6, backupCount=1)
     basicConfig(format=STRING_FORMAT, handlers=[file_handler, logging.StreamHandler()])
     logging.getLogger().setLevel(logging.INFO)
 
