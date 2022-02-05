@@ -11,7 +11,7 @@ from waitress import serve
 from resources.exchangerate import ExchangeRate
 
 def get_currencies_codes():
-    table_a_addr = f'https://api.nbp.pl/api/exchangerates/tables/a'
+    table_a_addr = 'https://api.nbp.pl/api/exchangerates/tables/a'
     try:
         req = requests.get(table_a_addr)
     except requests.exceptions.RequestException:
