@@ -39,11 +39,11 @@ def create_app():
     if not currencies_codes:
         logging.error('Couldn\'t create currencies code list for table A.')
         return None
-    app = Flask(__name__)
-    api = Api(app)
+    new_app = Flask(__name__)
+    api = Api(new_app)
     api.add_resource(ExchangeRate, '/prevday/exchangerate/<string:currency>/<string:date_string>',
                      resource_class_kwargs={'currencies_codes': currencies_codes})
-    return app
+    return new_app
 
 if __name__ == '__main__':
     STRING_FORMAT = '''{
