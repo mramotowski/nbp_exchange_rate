@@ -11,7 +11,7 @@ from waitress import serve
 from resources.exchangerate import ExchangeRate
 
 def get_currencies_codes():
-    table_a_addr = f'https://api.nbp.pl/api/exchangerates/tables/a'
+    table_a_addr = 'https://api.nbp.pl/api/exchangerates/tables/a'
     try:
         req = requests.get(table_a_addr)
     except requests.exceptions.RequestException:
@@ -39,11 +39,11 @@ def create_app():
     if not currencies_codes:
         logging.error('Couldn\'t create currencies code list for table A.')
         return None
-    app = Flask(__name__)
-    api = Api(app)
+    new_app = Flask(__name__)
+    api = Api(new_app)
     api.add_resource(ExchangeRate, '/prevday/exchangerate/<string:currency>/<string:date_string>',
                      resource_class_kwargs={'currencies_codes': currencies_codes})
-    return app
+    return new_app
 
 if __name__ == '__main__':
     STRING_FORMAT = '''{
