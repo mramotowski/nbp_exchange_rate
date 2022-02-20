@@ -7,6 +7,7 @@ from flask import Flask
 from flask_restful import Api
 from jsonformatter import basicConfig
 from paste.translogger import TransLogger
+from prometheus_flask_exporter import PrometheusMetrics
 from waitress import serve
 from resources.exchangerate import ExchangeRate
 
@@ -59,6 +60,8 @@ if __name__ == '__main__':
     app = create_app()
     if not app:
         sys.exit(1)
+
+    metrics = PrometheusMetrics(app)
 
     app_logged = TransLogger(app, setup_console_handler=False)
     serve(app_logged, host='0.0.0.0', port='5000')
